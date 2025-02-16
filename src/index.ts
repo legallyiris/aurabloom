@@ -1,7 +1,9 @@
 import { Elysia } from "elysia";
+import { Logger } from "./utils/logging";
 
+const appLogger = new Logger("app");
 const app = new Elysia().get("/", () => "Hello Elysia").listen(3000);
 
-console.log(
-  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
+appLogger.info(
+  `🌸 aurabloom! is running at ${app.server?.hostname}:${app.server?.port}`,
 );

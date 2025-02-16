@@ -1,9 +1,13 @@
 import { Elysia } from "elysia";
 import { Logger } from "./utils/logging";
+import cfg from "./config";
 
 const appLogger = new Logger("app");
-const app = new Elysia().get("/", () => "Hello Elysia").listen(3000);
+
+const app = new Elysia()
+  .get("/", () => `${cfg.app.fullName} v${cfg.app.version}!`)
+  .listen(cfg.server.port);
 
 appLogger.info(
-  `🌸 aurabloom! is running at ${app.server?.hostname}:${app.server?.port}`,
+  `${cfg.app.fullName} v${cfg.app.version} is running at ${app.server?.hostname}:${app.server?.port}`,
 );

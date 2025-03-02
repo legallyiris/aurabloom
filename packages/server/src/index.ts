@@ -1,5 +1,5 @@
+import { Logger } from "common";
 import { Elysia } from "elysia";
-import { Logger } from "./utils/logging";
 import cfg from "./config";
 
 const appLogger = new Logger("app");

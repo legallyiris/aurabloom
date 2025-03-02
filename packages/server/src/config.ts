@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
+import { Logger } from "common";
 import { z } from "zod";
-import { Logger } from "./utils/logging";
 
 const developerSchema = z.object({
   name: z.string(),

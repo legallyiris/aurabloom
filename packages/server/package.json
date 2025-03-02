@@ -2,13 +2,26 @@
   "name": "@aurabloom/server",
   "version": "1.0.0",
   "scripts": {
-    "run": "bun run src/index.ts",
-    "dev": "bun run --watch src/index.ts"
+    "start": "bun run src/index.ts",
+    "dev": "bun run --watch src/index.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
   },
   "type": "module",
   "dependencies": {
     "@aurabloom/common": "workspace:*",
+    "@elysiajs/swagger": "^1.2.2",
+    "drizzle-orm": "^0.40.0",
+    "drizzle-typebox": "^0.3.0",
     "elysia": "latest",
     "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@libsql/client": "^0.14.0",
+    "@types/bun": "^1.2.4",
+    "drizzle-kit": "^0.30.5"
+  },
+  "overrides": {
+    "@sinclair/typebox": "0.34.0"
   }
 }

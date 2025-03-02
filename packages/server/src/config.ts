@@ -27,16 +27,21 @@ const serverSchema = z.object({
   basePath: z.string().default("/"),
 });
 
+const dbSchema = z.object({
+  path: z.string().min(1).max(256),
+});
+
 const configSchema = z.object({
   app: appSchema,
   developer: developerSchema,
   repository: repositorySchema,
   server: serverSchema,
+  db: dbSchema,
 });
 
 export type Config = z.infer<typeof configSchema>;
 
-const loadConfig = (filePath = "./config.json"): Config => {
+const loadConfig = (filePath = "./../../config.json"): Config => {
   const configLogger = new Logger("config");
 
   try {

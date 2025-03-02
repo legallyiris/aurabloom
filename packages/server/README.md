@@ -1,15 +1,18 @@
-# server
+# @aurabloom/server
 
-To install dependencies:
+## setup
 
-```bash
-bun install
-```
+make sure you have everything installed with `bun install`.
 
-To run:
+then, run the database migrations with `bun run db:migrate`.
 
-```bash
-bun run src/index.ts
-```
+when you make changes to the database schema, you will need to:
+- generate migrations, `bun run db:migrate:generate`, and
+- run the migrations, `bun run db:migrate`
 
-This project was created using `bun init` in bun v1.2.2. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+you can now start the server with `bun run start` or `bun run dev` if you'd like
+the server to restart automatically when changes are made.
+
+## copying
+
+@aurabloom/server uses the same license as specified in the root README.

@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia";
 import { apiError } from "../utils/apiError";
-import { validateSession } from "../utils/sessions";
+import { renewSession, validateSession } from "../utils/sessions";
 
 export const authMiddleware = new Elysia()
   .derive({ as: "global" }, async ({ cookie: { session } }) => {
@@ -8,6 +8,11 @@ export const authMiddleware = new Elysia()
 
     const validSession = await validateSession(session.value);
     if (!validSession) return { user: null };
+
+    const renewDuration = 60 * 60 * 24 * 2;
+    const now = Math.floor(Date.now() / 1000);
+    if (validSession.expiresAt - now < renewDuration)
+      await renewSession(validSession.id);
 
     return {
       user: {

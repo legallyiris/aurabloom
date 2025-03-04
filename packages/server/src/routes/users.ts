@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Elysia } from "elysia";
 
 import db, { schema } from "../db";
@@ -149,6 +149,51 @@ export const usersRoutes = new Elysia({
         summary: "list user sessions",
         description:
           "get all active sessions for the currently authenticated user",
+      },
+    },
+  )
+  .delete(
+    "/me/sessions/:sessionId",
+    async ({ params, user, cookie: { session } }) => {
+      try {
+        if (!user) return apiError(401, "not authenticated");
+
+        const targetSession = db
+          .select()
+          .from(schema.sessions)
+          .where(
+            and(
+              eq(schema.sessions.id, params.sessionId),
+              eq(schema.sessions.userId, user.id),
+            ),
+          )
+          .get();
+
+        if (!targetSession) return apiError(404, "session not found");
+
+        if (params.sessionId === session.value) {
+          return apiError(
+            400,
+            "cannot delete current session, use /auth/logout instead",
+          );
+        }
+
+        await deleteSession(params.sessionId);
+
+        return {
+          status: "success",
+          data: {
+            message: "session deleted successfully",
+          },
+        };
+      } catch (error) {
+        return apiError(500, "failed to delete session");
+      }
+    },
+    {
+      detail: {
+        summary: "delete a specific session",
+        description: "revoke a specific session (log out from another device)",
       },
     },
   );

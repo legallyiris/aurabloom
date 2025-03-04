@@ -58,5 +58,19 @@ export const validateSession = async (sessionId: string) => {
 };
 
 export const deleteSession = async (sessionId: string) => {
-  db.delete(schema.sessions).where(eq(schema.sessions.id, sessionId));
+  await db
+    .delete(schema.sessions)
+    .where(eq(schema.sessions.id, sessionId))
+    .returning();
+};
+
+export const renewSession = async (sessionId: string, days = 7) => {
+  const newExpiresAt = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * days;
+
+  await db
+    .update(schema.sessions)
+    .set({ expiresAt: newExpiresAt })
+    .where(eq(schema.sessions.id, sessionId));
+
+  return newExpiresAt;
 };

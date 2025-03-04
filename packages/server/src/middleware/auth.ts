@@ -1,17 +1,20 @@
 import { Elysia, t } from "elysia";
 import { apiError } from "../utils/apiError";
-
-const sessionCookie = t.Cookie({
-  session: t.Object({
-    id: t.Number(),
-    username: t.String(),
-  }),
-});
+import { validateSession } from "../utils/sessions";
 
 export const authMiddleware = new Elysia()
-  .derive({ as: "global" }, ({ cookie: { session } }) => {
+  .derive({ as: "global" }, async ({ cookie: { session } }) => {
+    if (!session.value) return { user: null };
+
+    const validSession = await validateSession(session.value);
+    if (!validSession) return { user: null };
+
     return {
-      user: session.value,
+      user: {
+        id: validSession.user.id,
+        username: validSession.user.username,
+      },
+      sessionId: validSession.id,
     };
   })
   .resolve({ as: "scoped" }, ({ user, set }) => {

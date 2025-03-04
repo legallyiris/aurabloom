@@ -4,14 +4,10 @@ import { Elysia, t } from "elysia";
 import db, { schema } from "../db";
 import { models } from "../db/models";
 import { apiError } from "../utils/apiError";
+import { createSession, deleteSession } from "../utils/sessions";
 
 const sessionCookie = t.Cookie({
-  session: t.Optional(
-    t.Object({
-      id: t.Number(),
-      username: t.String(),
-    }),
-  ),
+  session: t.Optional(t.String()),
 });
 
 export const authRoutes = new Elysia({
@@ -20,7 +16,7 @@ export const authRoutes = new Elysia({
 })
   .post(
     "/login",
-    async ({ body, cookie: { session } }) => {
+    async ({ body, cookie: { session }, request }) => {
       try {
         const user = db
           .select()
@@ -37,10 +33,8 @@ export const authRoutes = new Elysia({
         if (!passwordMatch)
           return apiError(401, "invalid username or password");
 
-        session.value = {
-          id: user.id,
-          username: user.username,
-        };
+        const { sessionId } = await createSession(user.id, request);
+        session.value = sessionId;
 
         return {
           status: "success",
@@ -66,7 +60,11 @@ export const authRoutes = new Elysia({
   .post(
     "/logout",
     ({ cookie: { session } }) => {
-      session.remove();
+      if (session.value) {
+        deleteSession(session.value);
+        session.remove();
+      }
+
       return {
         status: "success",
         data: {

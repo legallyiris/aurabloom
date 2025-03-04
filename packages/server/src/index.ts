@@ -12,8 +12,7 @@ async function startServer() {
   const app = new Elysia()
     .use(swagger({ path: "/api/docs" }))
     .group("/api", (app) => {
-      return app
-        .use(routes);
+      return app.use(routes);
     })
     .listen(cfg.server.port);
 

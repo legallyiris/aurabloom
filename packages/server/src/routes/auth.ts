@@ -20,20 +20,24 @@ export const authRoutes = new Elysia({
     "/login",
     async ({ body, cookie: { session }, request, ip }) => {
       try {
+        const failedAttempt = async () => {
+          await Bun.sleep(Math.random() * 2000 + 1000);
+          return apiError(401, "invalid username or password");
+        };
+
         const user = db
           .select()
           .from(schema.users)
           .where(eq(schema.users.username, body.username))
           .get();
 
-        if (!user) return apiError(401, "invalid username or password");
+        if (!user) return failedAttempt();
 
         const passwordMatch = await Bun.password.verify(
           body.password,
           user.password,
         );
-        if (!passwordMatch)
-          return apiError(401, "invalid username or password");
+        if (!passwordMatch) return failedAttempt();
 
         const { sessionId } = await createSession(user.id, request, ip);
         session.value = sessionId;

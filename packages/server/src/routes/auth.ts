@@ -3,6 +3,7 @@ import { Elysia, t } from "elysia";
 
 import db, { schema } from "../db";
 import { models } from "../db/models";
+import ip from "../middleware/ip";
 import { apiError } from "../utils/apiError";
 import { createSession, deleteSession } from "../utils/sessions";
 
@@ -14,9 +15,10 @@ export const authRoutes = new Elysia({
   prefix: "/auth",
   tags: ["auth"],
 })
+  .use(ip)
   .post(
     "/login",
-    async ({ body, cookie: { session }, request }) => {
+    async ({ body, cookie: { session }, request, ip }) => {
       try {
         const user = db
           .select()
@@ -33,8 +35,10 @@ export const authRoutes = new Elysia({
         if (!passwordMatch)
           return apiError(401, "invalid username or password");
 
-        const { sessionId } = await createSession(user.id, request);
+        const { sessionId } = await createSession(user.id, request, ip);
         session.value = sessionId;
+
+        if (!sessionId) return apiError(500, "session creation failed");
 
         return {
           status: "success",

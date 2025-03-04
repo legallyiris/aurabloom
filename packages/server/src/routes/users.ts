@@ -4,12 +4,15 @@ import { Elysia } from "elysia";
 import db, { schema } from "../db";
 import { models } from "../db/models";
 import { authMiddleware } from "../middleware/auth";
+import ip from "../middleware/ip";
 import { apiError } from "../utils/apiError";
+import { deleteSession } from "../utils/sessions";
 
 export const usersRoutes = new Elysia({
   prefix: "/users",
   tags: ["users"],
 })
+  .use(authMiddleware)
   .post(
     "/users",
     async ({ body }) => {
@@ -75,31 +78,10 @@ export const usersRoutes = new Elysia({
       },
     },
   )
-  .use(authMiddleware)
   .get(
     "/me",
-    async ({ cookie: { session } }) => {
-      if (!session.value) {
-        return apiError(401, "not authenticated");
-      }
-
-      const userId = JSON.parse(session.value).id;
-
-      const user = db
-        .select({
-          id: schema.users.id,
-          username: schema.users.username,
-          displayName: schema.users.displayName,
-        })
-        .from(schema.users)
-        .where(eq(schema.users.id, userId))
-        .get();
-
-      if (!user) {
-        session.remove();
-        return apiError(404, "user not found");
-      }
-
+    async ({ user }) => {
+      if (!user) return apiError(401, "not authenticated");
       return {
         status: "success",
         data: user,
@@ -109,6 +91,64 @@ export const usersRoutes = new Elysia({
       detail: {
         summary: "get current user",
         description: "get the currently authenticated user's information",
+      },
+    },
+  )
+  .get(
+    "/me/sessions",
+    async ({ user, cookie: { session } }) => {
+      try {
+        if (!user) return apiError(401, "not authenticated");
+
+        const sessions = db
+          .select({
+            id: schema.sessions.id,
+            createdAt: schema.sessions.createdAt,
+            expiresAt: schema.sessions.expiresAt,
+            userAgent: schema.sessions.userAgent,
+            ipAddress: schema.sessions.ipAddress,
+          })
+          .from(schema.sessions)
+          .where(eq(schema.sessions.userId, user.id))
+          .all();
+
+        const formattedSessions = sessions.map((session) => {
+          const createdDate = new Date(session.createdAt * 1000);
+          const expiresDate = new Date(session.expiresAt * 1000);
+
+          return {
+            id: session.id,
+            createdAt: session.createdAt,
+            expiresAt: session.expiresAt,
+            createdAtFormatted: createdDate.toISOString(),
+            expiresAtFormatted: expiresDate.toISOString(),
+            userAgent: session.userAgent,
+            ipAddress: session.ipAddress,
+            current: false,
+          };
+        });
+
+        const currentSessionId = session.value;
+        const currentSession = formattedSessions.find(
+          (s) => s.id === currentSessionId,
+        );
+        if (currentSession) currentSession.current = true;
+
+        return {
+          status: "success",
+          data: {
+            sessions: formattedSessions,
+          },
+        };
+      } catch (error) {
+        return apiError(500, "failed to retrieve sessions");
+      }
+    },
+    {
+      detail: {
+        summary: "list user sessions",
+        description:
+          "get all active sessions for the currently authenticated user",
       },
     },
   );

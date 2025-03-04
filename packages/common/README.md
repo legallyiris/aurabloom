@@ -1,15 +1,7 @@
-# common
+@aurabloom/common
 
-To install dependencies:
+common things for use in aurabloom.
 
-```bash
-bun install
-```
+## copying
 
-To run:
-
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.2.2. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+@aurabloom/common uses the same license as specified in the root README.

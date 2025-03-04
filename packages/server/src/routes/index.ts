@@ -2,6 +2,7 @@ import fs from "node:fs";
 import { Elysia } from "elysia";
 
 import { authRoutes } from "./auth";
+import { communitiesRoutes } from "./communities";
 import { usersRoutes } from "./users";
 
 const rootTxt = fs.readFileSync("assets/root.txt", "utf8");
@@ -24,4 +25,5 @@ export const routes = new Elysia()
     },
   )
   .use(usersRoutes)
-  .use(authRoutes);
+  .use(authRoutes)
+  .use(communitiesRoutes);

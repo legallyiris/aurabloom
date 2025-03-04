@@ -1,14 +1,14 @@
 {
   "name": "aurabloom",
   "version": "1.0.50",
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "bun-types": "latest"
+  },
   "private": true,
-  "workspaces": ["packages/*"],
   "scripts": {
     "dev:server": "bun run --watch packages/server/src/index.ts",
     "dev:client": "bun run packages/client/src/index.ts"
   },
-  "devDependencies": {
-    "@biomejs/biome": "1.9.4",
-    "bun-types": "latest"
-  }
+  "workspaces": ["packages/*"]
 }

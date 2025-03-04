@@ -22,9 +22,18 @@ const repositorySchema = z.object({
   branch: z.string(),
 });
 
+const cookieSchema = z.object({
+  secret: z.string().min(32).max(256),
+  path: z.string().default("/"),
+  httpOnly: z.boolean().default(true),
+  secure: z.boolean().default(false),
+  sameSite: z.enum(["strict", "lax", "none"]).default("strict"),
+});
+
 const serverSchema = z.object({
   port: z.number().int().positive().min(1024).max(65535),
   basePath: z.string().default("/"),
+  secure: z.boolean().default(false),
 });
 
 const dbSchema = z.object({
@@ -35,6 +44,7 @@ const configSchema = z.object({
   app: appSchema,
   developer: developerSchema,
   repository: repositorySchema,
+  cookie: cookieSchema,
   server: serverSchema,
   db: dbSchema,
 });

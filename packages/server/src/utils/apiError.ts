@@ -5,3 +5,7 @@ export function apiError(code: number, message: string) {
     message,
   };
 }
+
+export function apiUnauthenticated(details?: string) {
+  return apiError(401, "not authenticated");
+}

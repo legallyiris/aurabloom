@@ -1,6 +1,14 @@
-import { relations } from "drizzle-orm";
-import { int, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { Param, relations } from "drizzle-orm";
+import {
+  type AnySQLiteColumn,
+  int,
+  sqliteTable,
+  text,
+} from "drizzle-orm/sqlite-core";
 import { nanoid } from "nanoid/non-secure";
+
+export const channelTypes = ["text", "category"] as const;
+export type ChannelType = (typeof channelTypes)[number];
 
 export const users = sqliteTable("users", {
   id: int().primaryKey({ autoIncrement: true }),
@@ -68,7 +76,7 @@ export const channels = sqliteTable("channels", {
     .references(() => communities.id),
   name: text("name", { length: 100 }).notNull(),
   description: text("description", { length: 500 }),
-  type: text("type").notNull().default("text"),
+  type: text("type", { enum: channelTypes }).notNull().default("text"),
   createdAt: int("createdAt")
     .notNull()
     .default(Math.floor(Date.now() / 1000)),
@@ -76,6 +84,7 @@ export const channels = sqliteTable("channels", {
     .notNull()
     .references(() => users.id),
   isPrivate: int("isPrivate", { mode: "boolean" }).notNull().default(false),
+  parentChannelId: text("parentChannelId"),
 });
 
 export const messages = sqliteTable("messages", {
@@ -106,7 +115,7 @@ export const communitiesRelations = relations(communities, ({ many, one }) => ({
   }),
 }));
 
-export const channelsRelations = relations(channels, ({ many, one }) => ({
+export const channelsRelations = relations(channels, ({ one, many }) => ({
   messages: many(messages),
   community: one(communities, {
     fields: [channels.communityId],
@@ -115,6 +124,13 @@ export const channelsRelations = relations(channels, ({ many, one }) => ({
   creator: one(users, {
     fields: [channels.createdBy],
     references: [users.id],
+  }),
+  parent: one(channels, {
+    fields: [channels.parentChannelId],
+    references: [channels.id],
+  }),
+  children: many(channels, {
+    relationName: "children",
   }),
 }));
 

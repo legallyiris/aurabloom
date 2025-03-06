@@ -2,6 +2,7 @@ import fs from "node:fs";
 import { Elysia } from "elysia";
 
 import { authRoutes } from "./auth";
+import { channelsRoutes } from "./channels";
 import { communitiesRoutes } from "./communities";
 import { usersRoutes } from "./users";
 
@@ -26,4 +27,5 @@ export const routes = new Elysia()
   )
   .use(usersRoutes)
   .use(authRoutes)
-  .use(communitiesRoutes);
+  .use(communitiesRoutes)
+  .use(channelsRoutes);

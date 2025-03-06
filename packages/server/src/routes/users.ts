@@ -4,8 +4,7 @@ import { Elysia } from "elysia";
 import db, { schema } from "../db";
 import { models } from "../db/models";
 import { authMiddleware } from "../middleware/auth";
-import ip from "../middleware/ip";
-import { apiError } from "../utils/apiError";
+import { apiError, apiUnauthenticated } from "../utils/apiError";
 import { deleteSession } from "../utils/sessions";
 
 export const usersRoutes = new Elysia({
@@ -81,7 +80,7 @@ export const usersRoutes = new Elysia({
   .get(
     "/me",
     async ({ user }) => {
-      if (!user) return apiError(401, "not authenticated");
+      if (!user) return apiUnauthenticated();
       return {
         status: "success",
         data: user,
@@ -98,7 +97,7 @@ export const usersRoutes = new Elysia({
     "/me/sessions",
     async ({ user, cookie: { session } }) => {
       try {
-        if (!user) return apiError(401, "not authenticated");
+        if (!user) return apiUnauthenticated();
 
         const sessions = db
           .select({

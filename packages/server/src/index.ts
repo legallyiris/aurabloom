@@ -44,3 +44,4 @@ async function startServer() {
 }
 
 startServer();
+export type { App } from "./eden";

@@ -25,5 +25,11 @@
   },
   "overrides": {
     "@sinclair/typebox": "0.34.0"
+  },
+  "types": "./src/eden.ts",
+  "exports": {
+    ".": {
+      "types": "./src/eden.ts"
+    }
   }
 }

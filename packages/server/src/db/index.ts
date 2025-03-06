@@ -17,13 +17,14 @@ function helper(message: string) {
 
 const logger = new Logger("db");
 
-if (!fs.existsSync(config.db.path)) helper("database file not found");
+if (!fs.existsSync(config.db.path))
+  helper("database file not found or aurabloom can't access it");
 
 const sqlite = new Database(config.db.path);
 const db = drizzle(sqlite, { schema });
 
 const tables = db.all("SELECT name FROM sqlite_master WHERE type='table'");
-if (tables.length <= 1) helper("database is empty");
+if (tables.length <= 1) helper("database doesn't contain the expected tables");
 
 export { schema };
 export default db;

@@ -1,3 +1,4 @@
+import { cors } from "@elysiajs/cors";
 import { swagger } from "@elysiajs/swagger";
 import { Logger } from "common";
 import { Elysia } from "elysia";
@@ -20,6 +21,7 @@ async function startServer() {
       sign: ["session"],
     },
   })
+    .use(cors())
     .use(swagger({ path: "/api/docs" }))
     .onError(({ error, code }) => {
       if (code === "NOT_FOUND") return apiError(404, "Not Found");

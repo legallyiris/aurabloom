@@ -1,4 +1,4 @@
-import "./assets/main.css";
+import "./assets/main.scss";
 
 import type { App as AurabloomApp } from "@aurabloom/server";
 import { treaty } from "@elysiajs/eden";

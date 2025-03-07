@@ -7,27 +7,39 @@ const router = createRouter({
   routes: [
     {
       path: "/",
-      name: "home",
-      component: HomeView,
-    },
-    {
-      path: "/about",
       name: "about-root",
-      component: () => import("../views/about/AboutRoot.vue"),
-
+      component: () => import("../views/root/AboutRoot.vue"),
       children: [
         {
           path: "",
           name: "about",
-          component: () => import("../views/about/AboutView.vue"),
+          component: () => import("../views/root/AboutView.vue"),
           meta: {
             title: "about - aurabloom",
           },
         },
         {
-          path: "/about/privacy",
+          path: "/login",
+          name: "login",
+          component: () => import("../views/root/AuthView.vue"),
+          meta: {
+            title: "log in - aurabloom",
+            guest: true,
+          },
+        },
+        {
+          path: "/register",
+          name: "register",
+          component: () => import("../views/root/AuthView.vue"),
+          meta: {
+            title: "register - aurabloom",
+            guest: true,
+          },
+        },
+        {
+          path: "/privacy",
           name: "privacy",
-          component: () => import("../views/about/PrivacyView.vue"),
+          component: () => import("../views/root/PrivacyView.vue"),
           meta: {
             title: "privacy policy - aurabloom",
           },

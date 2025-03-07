@@ -30,7 +30,6 @@ const goToMarkdown = () => {
 };
 
 onMounted(async () => {
-  // Load if not already loaded
   if (!policyHtml.value && !error.value) {
     await loadPrivacyPolicy();
   }
@@ -70,7 +69,4 @@ onMounted(async () => {
   display: flex;
   gap: 1rem;
 }
-
-
-
 </style>

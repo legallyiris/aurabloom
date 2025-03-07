@@ -7,8 +7,8 @@
                 <p>free & open source chat</p>
             </div>
             <div class="links">
-                <RouterLink to="/about">about</RouterLink>
-                <RouterLink to="/about/privacy">privacy</RouterLink>
+                <RouterLink to="/">home</RouterLink>
+                <RouterLink to="/privacy">privacy</RouterLink>
             </div>
         </div>
     </footer>

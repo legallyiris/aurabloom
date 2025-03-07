@@ -6,7 +6,6 @@ import db, { schema } from "../db";
 import { models } from "../db/models";
 import { channelTypes } from "../db/schema";
 import { authMiddleware } from "../middleware/auth";
-import { apiError, apiUnauthenticated } from "../utils/apiError";
 
 export const channelsRoutes = new Elysia({
   prefix: "/channels",
@@ -15,8 +14,8 @@ export const channelsRoutes = new Elysia({
   .use(authMiddleware)
   .post(
     "/:communityId",
-    async ({ params, body, user }) => {
-      if (!user) return apiUnauthenticated();
+    async ({ params, body, user, error }) => {
+      if (!user) return error(401, "unauthenticated");
 
       try {
         const community = db
@@ -25,7 +24,7 @@ export const channelsRoutes = new Elysia({
           .where(eq(schema.communities.id, params.communityId))
           .get();
 
-        if (!community) return apiError(404, "community not found");
+        if (!community) return error(404, "community not found");
 
         const membership = db
           .select()
@@ -39,10 +38,10 @@ export const channelsRoutes = new Elysia({
           .get();
 
         if (!membership)
-          return apiError(403, "you must be a member to create channels");
+          return error(403, "you must be a member to create channels");
 
         if (community.createdBy !== user.id) {
-          return apiError(
+          return error(
             403,
             "only the community creator can create channels",
           );
@@ -55,9 +54,9 @@ export const channelsRoutes = new Elysia({
             .where(eq(schema.channels.id, body.parentChannelId))
             .get();
 
-          if (!parentChannel) return apiError(404, "parent channel not found");
+          if (!parentChannel) return error(404, "parent channel not found");
           if (parentChannel.type !== "category")
-            return apiError(400, "parent channel must be a category channel");
+            return error(400, "parent channel must be a category channel");
         }
 
         const channel = await db
@@ -78,17 +77,17 @@ export const channelsRoutes = new Elysia({
           status: "success",
           data: channel[0],
         };
-      } catch (error) {
+      } catch (err) {
         console.error(error);
-        return apiError(500, "failed to create channel");
+        return error(500, "failed to create channel");
       }
     },
     {
       body: models.channel.create,
-      beforeHandle: ({ body, set }) => {
+      beforeHandle: ({ body, set, error }) => {
         if (body.type && !channelTypes.includes(body.type)) {
           set.status = 400;
-          return apiError(400, "invalid channel type");
+          return error(400, "invalid channel type");
         }
       },
       detail: {
@@ -99,8 +98,8 @@ export const channelsRoutes = new Elysia({
   )
   .get(
     "/:communityId",
-    async ({ params, user }) => {
-      if (!user) return apiUnauthenticated();
+    async ({ params, user, error }) => {
+      if (!user) return error(401, "unauthenticated");
 
       try {
         const community = db
@@ -110,7 +109,7 @@ export const channelsRoutes = new Elysia({
           .get();
 
         if (!community) {
-          return apiError(404, "community not found");
+          return error(404, "community not found");
         }
 
         const membership = db
@@ -125,7 +124,7 @@ export const channelsRoutes = new Elysia({
           .get();
 
         if (!membership && !community.isPublic) {
-          return apiError(403, "you don't have access to this community");
+          return error(403, "you don't have access to this community");
         }
 
         const channels = db
@@ -138,8 +137,8 @@ export const channelsRoutes = new Elysia({
           status: "success",
           data: channels,
         };
-      } catch (error) {
-        return apiError(500, "failed to retrieve channels");
+      } catch (err) {
+        return error(500, "failed to retrieve channels");
       }
     },
     {

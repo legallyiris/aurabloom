@@ -1,5 +1,4 @@
 import { Elysia, t } from "elysia";
-import { apiError } from "../utils/apiError";
 import { renewSession, validateSession } from "../utils/sessions";
 
 export const authMiddleware = new Elysia()
@@ -22,10 +21,10 @@ export const authMiddleware = new Elysia()
       sessionId: validSession.id,
     };
   })
-  .resolve({ as: "scoped" }, ({ user, set }) => {
+  .resolve({ as: "scoped" }, ({ user, set, error }) => {
     if (!user) {
       set.status = 401;
-      return apiError(401, "unauthorized");
+      return error(401, "unauthorized");
     }
 
     return { user };

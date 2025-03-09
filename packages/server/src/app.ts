@@ -5,6 +5,7 @@ import { Elysia } from "elysia";
 
 import cfg from "./config";
 
+import { federationRoutes } from "./federation/routes";
 import { routes } from "./routes";
 import { apiError } from "./utils/apiError";
 
@@ -38,7 +39,7 @@ const app = new Elysia({
       return apiError(500, "Internal Server Error");
     if (code === "PARSE") return apiError(400, "Invalid Request");
 
-    appLogger.error(`${code} ${error}`);
+    appLogger.error(`${code}`, error);
     return apiError(500, "Internal Server Error");
   })
   .group("/api", (app) => {
@@ -52,6 +53,7 @@ const app = new Elysia({
         }),
       )
       .use(routes);
-  });
+  })
+  .use(federationRoutes);
 
 export default app;

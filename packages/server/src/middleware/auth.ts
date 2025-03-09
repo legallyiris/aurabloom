@@ -1,5 +1,9 @@
+import { Logger } from "@aurabloom/common";
 import { Elysia, t } from "elysia";
+import { ensureActorExists, getBaseUrl } from "../federation/utils";
 import { renewSession, validateSession } from "../utils/sessions";
+
+const logger = new Logger("authMiddleware");
 
 export const authMiddleware = new Elysia()
   .derive({ as: "global" }, async ({ cookie: { session } }) => {
@@ -12,6 +16,16 @@ export const authMiddleware = new Elysia()
     const now = Math.floor(Date.now() / 1000);
     if (validSession.expiresAt - now < renewDuration)
       await renewSession(validSession.id);
+
+    try {
+      const baseUrl = getBaseUrl();
+      await ensureActorExists(validSession.user.id, baseUrl);
+    } catch (error) {
+      logger.warn(
+        `failed to ensure federation actor for user with id ${validSession.user.id}`,
+        error,
+      );
+    }
 
     return {
       user: {

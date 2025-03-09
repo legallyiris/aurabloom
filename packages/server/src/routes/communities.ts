@@ -1,9 +1,11 @@
 import { and, desc, eq } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 
+import { nanoid } from "nanoid/non-secure";
 import db, { schema } from "../db";
+import { ensureCommunityActorExists } from "../federation/utils";
+import { getBaseUrl } from "../federation/utils";
 import { authMiddleware } from "../middleware/auth";
-import { apiError } from "../utils/apiError";
 
 const communityCreateBody = t.Object({
   name: t.String({ minLength: 3, maxLength: 100 }),
@@ -19,13 +21,14 @@ export const communitiesRoutes = new Elysia({
   .use(authMiddleware)
   .post(
     "/",
-    async ({ body, user, error }) => {
-if (!user) return error(401, "unauthenticated");
+    async ({ body, user, error, request }) => {
+      if (!user) return error(401, "unauthenticated");
 
       try {
         const community = await db
           .insert(schema.communities)
           .values({
+            id: nanoid(),
             name: body.name,
             description: body.description,
             icon: body.icon,
@@ -34,9 +37,9 @@ if (!user) return error(401, "unauthenticated");
           })
           .returning();
 
-        if (!community.length) {
-          return error(500, "failed to create community");
-        }
+        if (!community.length) return error(500, "failed to create community");
+
+        await ensureCommunityActorExists(community[0].id, getBaseUrl(request));
 
         await db.insert(schema.communityMembers).values({
           userId: user.id,
@@ -49,6 +52,7 @@ if (!user) return error(401, "unauthenticated");
           data: community[0],
         };
       } catch (err) {
+        console.error(err);
         return error(500, "failed to create community");
       }
     },
@@ -63,7 +67,7 @@ if (!user) return error(401, "unauthenticated");
   )
   .get(
     "/",
-    async () => {
+    async ({ error }) => {
       try {
         const communities = db
           .select({
@@ -89,8 +93,8 @@ if (!user) return error(401, "unauthenticated");
           status: "success",
           data: communities,
         };
-      } catch (error) {
-        return apiError(500, "failed to retrieve communities");
+      } catch (err) {
+        return error(500, "failed to retrieve communities");
       }
     },
     {
@@ -103,7 +107,7 @@ if (!user) return error(401, "unauthenticated");
   .get(
     "/me",
     async ({ user, error }) => {
-if (!user) return error(401, "unauthenticated");
+      if (!user) return error(401, "unauthenticated");
 
       try {
         const memberships = db
@@ -147,7 +151,7 @@ if (!user) return error(401, "unauthenticated");
   .get(
     "/:id",
     async ({ params, user, error }) => {
-if (!user) return error(401, "unauthenticated");
+      if (!user) return error(401, "unauthenticated");
 
       try {
         const community = db

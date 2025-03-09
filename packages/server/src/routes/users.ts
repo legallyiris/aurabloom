@@ -3,8 +3,12 @@ import { Elysia } from "elysia";
 
 import db, { schema } from "../db";
 import { models } from "../db/models";
+import { ensureActorExists, getBaseUrl } from "../federation/utils";
 import { authMiddleware } from "../middleware/auth";
 import { deleteSession } from "../utils/sessions";
+
+import routeLogger from "./_logger";
+const logger = routeLogger.child("users");
 
 export const usersRoutes = new Elysia({
   prefix: "/users",
@@ -12,7 +16,7 @@ export const usersRoutes = new Elysia({
 })
   .post(
     "/users",
-    async ({ body, error }) => {
+    async ({ body, error, request }) => {
       try {
         const existingUser = db
           .select()
@@ -35,6 +39,16 @@ export const usersRoutes = new Elysia({
           })
           .returning();
 
+        try {
+          const baseUrl = getBaseUrl(request);
+          await ensureActorExists(user[0].id, baseUrl);
+        } catch (fedErr) {
+          logger.error(
+            "failed to create federation actor for new user:",
+            fedErr,
+          );
+        }
+
         return {
           status: "success",
           data: {
@@ -44,6 +58,7 @@ export const usersRoutes = new Elysia({
           },
         };
       } catch (err) {
+        logger.error("failed to create user:", err);
         return error(500, "failed to create user");
       }
     },
@@ -139,6 +154,7 @@ export const usersRoutes = new Elysia({
           },
         };
       } catch (err) {
+        logger.error("failed to retrieve sessions:", err);
         return error(500, "failed to retrieve sessions");
       }
     },
@@ -185,6 +201,7 @@ export const usersRoutes = new Elysia({
           },
         };
       } catch (err) {
+        logger.error("failed to delete session:", err);
         return error(500, "failed to delete session");
       }
     },

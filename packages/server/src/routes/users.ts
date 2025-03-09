@@ -5,7 +5,7 @@ import db, { schema } from "../db";
 import { models } from "../db/models";
 import { ensureActorExists, getBaseUrl } from "../federation/utils";
 import { authMiddleware } from "../middleware/auth";
-import { deleteSession } from "../utils/sessions";
+import { createSession, deleteSession } from "../utils/sessions";
 
 import routeLogger from "./_logger";
 const logger = routeLogger.child("users");
@@ -16,7 +16,7 @@ export const usersRoutes = new Elysia({
 })
   .post(
     "/users",
-    async ({ body, error, request }) => {
+    async ({ body, error, cookie: { session }, request, server }) => {
       try {
         const existingUser = db
           .select()
@@ -48,6 +48,14 @@ export const usersRoutes = new Elysia({
             fedErr,
           );
         }
+
+        // also create a session
+        const { sessionId } = await createSession(
+          user[0].id,
+          request,
+          server?.requestIP(request) || undefined,
+        );
+        session.value = sessionId;
 
         return {
           status: "success",

@@ -1,5 +1,4 @@
-import type { App as AurabloomApp } from "@aurabloom/server";
-import { treaty } from "@elysiajs/eden";
+import { api } from "@/services/api";
 import { defineStore } from "pinia";
 
 export const useChannelStore = defineStore("channel", {
@@ -20,12 +19,6 @@ export const useChannelStore = defineStore("channel", {
     async fetchChannels(communityId: string) {
       this.isLoading = true;
       this.error = null;
-
-      const api = treaty<AurabloomApp>("http://localhost:3000", {
-        fetch: {
-          credentials: "include",
-        },
-      });
 
       try {
         const { data, error } = await api.api.channels({ communityId }).get();
@@ -48,12 +41,6 @@ export const useChannelStore = defineStore("channel", {
       this.isLoading = true;
       this.error = null;
 
-      const api = treaty<AurabloomApp>("http://localhost:3000", {
-        fetch: {
-          credentials: "include",
-        },
-      });
-
       try {
         const { data, error } = await api.api.messages({ channelId }).get();
 
@@ -74,12 +61,6 @@ export const useChannelStore = defineStore("channel", {
     async sendMessage(channelId: string, content: string) {
       this.isLoading = true;
       this.error = null;
-
-      const api = treaty<AurabloomApp>("http://localhost:3000", {
-        fetch: {
-          credentials: "include",
-        },
-      });
 
       try {
         const { data, error } = await api.api.messages({ channelId }).post({

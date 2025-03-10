@@ -1,5 +1,4 @@
-import type { App as AurabloomApp } from "@aurabloom/server";
-import { treaty } from "@elysiajs/eden";
+import { api } from "@/services/api";
 import { defineStore } from "pinia";
 
 export const useAuthStore = defineStore("auth", {
@@ -19,12 +18,6 @@ export const useAuthStore = defineStore("auth", {
     async login(options: { username: string; password: string }) {
       this.isLoading = true;
       this.error = null;
-
-      const api = treaty<AurabloomApp>("http://localhost:3000", {
-        fetch: {
-          credentials: "include",
-        },
-      });
 
       try {
         const { username, password } = options;
@@ -59,11 +52,7 @@ export const useAuthStore = defineStore("auth", {
       password: string;
     }) {
       this.isLoading = true;
-      const api = treaty<AurabloomApp>("http://localhost:3000", {
-        fetch: {
-          credentials: "include",
-        },
-      });
+
       try {
         const { username, displayName, password } = options;
         const { error } = await api.api.users.users.post({
@@ -92,14 +81,9 @@ export const useAuthStore = defineStore("auth", {
 
     async logout() {
       this.isLoading = true;
-      const api = treaty<AurabloomApp>("http://localhost:3000", {
-        fetch: {
-          credentials: "include",
-        },
-      });
+
       try {
         const resp = await api.api.auth.logout.post();
-        console.log(resp);
         this.user = null;
         this.isAuthenticated = false;
       } catch (err) {
@@ -111,11 +95,6 @@ export const useAuthStore = defineStore("auth", {
 
     async fetchCurrentUser() {
       this.isLoading = true;
-      const api = treaty<AurabloomApp>("http://localhost:3000", {
-        fetch: {
-          credentials: "include",
-        },
-      });
       try {
         const { data, error } = await api.api.users.me.get();
 

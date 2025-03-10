@@ -1,3 +1,4 @@
+import { api } from "@/services/api";
 import type { App as AurabloomApp } from "@aurabloom/server";
 import { treaty } from "@elysiajs/eden";
 import { defineStore } from "pinia";
@@ -18,12 +19,6 @@ export const useCommunityStore = defineStore("community", {
     async fetchPublicCommunities() {
       this.isLoading = true;
       this.error = null;
-
-      const api = treaty<AurabloomApp>("http://localhost:3000", {
-        fetch: {
-          credentials: "include",
-        },
-      });
 
       try {
         const { data, error } = await api.api.communities.index.get();
@@ -46,12 +41,6 @@ export const useCommunityStore = defineStore("community", {
       this.isLoading = true;
       this.error = null;
 
-      const api = treaty<AurabloomApp>("http://localhost:3000", {
-        fetch: {
-          credentials: "include",
-        },
-      });
-
       try {
         const { data, error } = await api.api.communities.me.get();
 
@@ -72,12 +61,6 @@ export const useCommunityStore = defineStore("community", {
     async joinCommunity(communityId: string) {
       this.isLoading = true;
       this.error = null;
-
-      const api = treaty<AurabloomApp>("http://localhost:3000", {
-        fetch: {
-          credentials: "include",
-        },
-      });
 
       try {
         const { error } = await api.api

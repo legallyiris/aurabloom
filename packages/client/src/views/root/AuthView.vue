@@ -61,19 +61,24 @@ const handleSubmit = async () => {
 
   isSubmitting.value = true;
 
-  if (isRegistration.value)
+  if (isRegistration.value) {
     await authStore.register({
       username: username.value,
       password: password.value,
     });
-  else
+  } else {
     await authStore.login({
       username: username.value,
       password: password.value,
     });
+  }
 
   isSubmitting.value = false;
-  if (authStore.isAuthenticated) router.push("/");
+  if (authStore.isAuthenticated) redirectToApp();
+};
+
+const redirectToApp = () => {
+  router.push("/app");
 };
 </script>
 

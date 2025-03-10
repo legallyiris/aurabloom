@@ -55,6 +55,14 @@ const router = createRouter({
         },
       ],
     },
+    {
+      path: "/app",
+      name: "app",
+      component: () => import("../views/app/AppRoot.vue"),
+      meta: {
+        title: "app - aurabloom",
+      },
+    },
   ],
 });
 

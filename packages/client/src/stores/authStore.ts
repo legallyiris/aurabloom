@@ -79,6 +79,8 @@ export const useAuthStore = defineStore("auth", {
           } else {
             this.error = error.value || "registration failed";
           }
+        } else {
+          this.isAuthenticated = true;
         }
       } catch (err) {
         this.error = "registration failed";

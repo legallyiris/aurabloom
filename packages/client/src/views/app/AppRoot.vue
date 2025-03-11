@@ -15,11 +15,17 @@ const channelStore = useChannelStore();
 
 const loading = ref(false);
 const currentCommunityId = computed(
-  () => (route.params.communityId as string) || "",
+  () => (route.params.communityId as string) || null,
 );
 const currentChannelId = computed(
-  () => (route.params.channelId as string) || "",
+  () => (route.params.channelId as string) || null,
 );
+
+const currentCommunity = computed(() => {
+  return communityStore.communities.find(
+    (c) => c.id === currentCommunityId.value,
+  );
+});
 
 const channelListWidth = ref(256);
 const isDragging = ref(false);
@@ -111,8 +117,9 @@ function expandChannelList() {
     <div class="app-header">
       <div class="app-header__section">
         <button
-            @click="isChannelListVisible ? collapseChannelList() : expandChannelList()"
+            @click="if (currentCommunityId) isChannelListVisible ? collapseChannelList() : expandChannelList();"
             class="show-channels-btn"
+            :active="currentCommunityId !== null"
             title="Show channels">
             <svg v-if="!isChannelListVisible"
                 width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -126,15 +133,22 @@ function expandChannelList() {
         <p class="brand">aurabloom!</p>
       </div>
       <div class="app-header__section current-page">
-        <div class="icon"></div>
-        <div class="name">
-            <p v-if="currentCommunityId">{{ communityStore.communities.find(c => c.id === currentCommunityId)?.name }}</p>
-            <p v-else>no community selected</p>
-        </div>
+        <template v-if="currentCommunity">
+            <div class="icon">
+                <img v-if="currentCommunity.icon" :src="currentCommunity?.icon" alt="Community Icon" />
+            </div>
+            <div class="name"><p>{{ currentCommunity.name }}</p></div>
+        </template>
+        <template v-else>
+            <div class="icon"></div>
+            <div class="name"><p>no community selected</p></div>
+        </template>
       </div>
       <div class="app-header__section user">
         <div class="name"><p>{{ authStore.user?.username }}</p></div>
-        <div class="icon"></div>
+        <div class="icon">
+            <img class="avatar" v-if="authStore.user?.avatarUrl" :src="authStore.user?.avatarUrl" alt="User Avatar" />
+        </div>
       </div>
     </div>
 
@@ -147,7 +161,9 @@ function expandChannelList() {
             :title="community.name"
             @click="selectCommunity(community.id)"
         >
-          <div class="icon"></div>
+          <div class="icon">
+            <img class="avatar" v-if="community.icon" :src="community.icon" alt="Community Avatar" />
+          </div>
         </div>
       </div>
 
@@ -161,9 +177,10 @@ function expandChannelList() {
             :key="channel.id"
             :class="{ active: channel.id === currentChannelId, 'channel-item': true }"
             :title="channel.name"
+            v-if="currentCommunityId"
             @click="selectChannel(currentCommunityId, channel.id)"
         >
-          <div class="icon"></div>
+          <div class="prefix">#</div>
           <div class="name"><p>{{ channel.name }}</p></div>
         </div>
       </div>
@@ -224,9 +241,15 @@ function expandChannelList() {
             .icon {
                 aspect-ratio: 1;
                 background-color: hsl(var(--subtext0));
-                width: 1rem;
-                height: 1rem;
+                width: 1.5rem;
+                height: 1.5rem;
                 border-radius: 50%;
+
+                img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
             }
         }
     }
@@ -243,7 +266,12 @@ function expandChannelList() {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.2s;
+    transition: 0.2s;
+
+    &[active = false] {
+        filter: brightness(0.8);
+        cursor: not-allowed;
+    }
 
     &:hover {
         background-color: hsla(var(--overlay0) / 0.3);
@@ -280,16 +308,23 @@ function expandChannelList() {
 
                 .icon {
                     aspect-ratio: 1;
+                    border: 1px solid hsla(var(--subtext0) / 0);
                     background-color: hsl(var(--subtext0));
-                    width: 2rem;
-                    height: 2rem;
+                    overflow: hidden;
+                    width: 2.5rem;
+                    height: 2.5rem;
                     border-radius: 50%;
-                    border: 1px solid transparent;
                     transition: 0.2s ease-in-out;
+
+                    img {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                    }
                 }
 
                 &.active .icon {
-                    background-color: hsla(var(--accent) / 0.05);
+                    background-color: hsl(var(--subtext0));
                     border: 1px solid hsla(var(--subtext0) / 0.2);
                     color: hsl(var(--background));
                     border-radius: 0.25rem;
@@ -310,7 +345,7 @@ function expandChannelList() {
                 display: flex;
                 align-items: center;
                 gap: 0.5rem;
-                padding: 0.5rem 0.15rem;
+                padding: 0.2rem 0.5rem;
                 cursor: pointer;
                 font-size: 0.75rem;
                 font-weight: 500;
@@ -320,6 +355,12 @@ function expandChannelList() {
                 border-radius: 0.5rem;
 
                 transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+                .prefix {
+                    font-size: 1rem;
+                    font-weight: 900;
+                    color: hsla(var(--subtext0) / 0.7);
+                }
 
                 &:hover {
                     background-color: hsla(var(--accent) / 0.05);
@@ -340,10 +381,6 @@ function expandChannelList() {
                     margin: 0;
                     font-weight: 500;
                     color: hsl(var(--text));
-                }
-
-                &:hover .icon {
-                    border-radius: 0.25rem;
                 }
             }
         }

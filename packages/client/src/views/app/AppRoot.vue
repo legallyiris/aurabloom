@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 import { useAuthStore } from "@/stores/authStore";
 import { useChannelStore } from "@/stores/channelStore";
@@ -8,13 +8,18 @@ import { useCommunityStore } from "@/stores/communityStore";
 import { computed } from "vue";
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 const communityStore = useCommunityStore();
 const channelStore = useChannelStore();
 
 const loading = ref(false);
-const currentCommunityId = computed(() => communityStore.currentCommunity);
-const currentChannelId = computed(() => channelStore.currentChannel);
+const currentCommunityId = computed(
+  () => (route.params.communityId as string) || "",
+);
+const currentChannelId = computed(
+  () => (route.params.channelId as string) || "",
+);
 
 const channelListWidth = ref(256);
 const isDragging = ref(false);
@@ -26,16 +31,19 @@ onMounted(async () => {
   if (!authStore.isAuthenticated) router.push({ name: "login" });
   loading.value = false;
 
-  if (authStore.isAuthenticated) await communityStore.fetchMyCommunities();
+  if (authStore.isAuthenticated) {
+    await communityStore.fetchMyCommunities();
+    if (currentCommunityId.value)
+      await channelStore.fetchChannels(currentCommunityId.value);
+  }
 });
 
-async function selectCommunity(communityId: string) {
-  communityStore.currentCommunity = communityId;
-  await channelStore.fetchChannels(communityId);
+function selectCommunity(communityId: string) {
+  router.push({ name: "community", params: { communityId } });
 }
 
-async function selectChannel(channelId: string) {
-  channelStore.currentChannel = channelId;
+function selectChannel(communityId: string, channelId: string) {
+  router.push({ name: "channel", params: { communityId, channelId } });
 }
 
 function startDragging() {
@@ -153,7 +161,7 @@ function expandChannelList() {
             :key="channel.id"
             :class="{ active: channel.id === currentChannelId, 'channel-item': true }"
             :title="channel.name"
-            @click="selectChannel(channel.id)"
+            @click="selectChannel(currentCommunityId, channel.id)"
         >
           <div class="icon"></div>
           <div class="name"><p>{{ channel.name }}</p></div>
@@ -167,7 +175,7 @@ function expandChannelList() {
           @dblclick="toggleChannelList"></div>
 
           <div class="chat__content">
-            <div class="chat__content-header">
+            <div class="chat__content-header" v-if="currentChannelId">
               <div class="chat__content-header__title">
                 <p>{{ channelStore.channels.find(channel => channel.id === currentChannelId)?.name }}</p>
               </div>
@@ -187,9 +195,10 @@ function expandChannelList() {
 <style lang="scss" scoped>
 
 .app-container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .app-header {
@@ -224,35 +233,36 @@ function expandChannelList() {
 }
 
 .show-channels-btn {
-  background: none;
-  border: none;
-  color: hsl(var(--subtext0));
-  cursor: pointer;
-  padding: 0.25rem;
-  margin-right: 0.5rem;
-  border-radius: 0.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.2s;
+    background: none;
+    border: none;
+    color: hsl(var(--subtext0));
+    cursor: pointer;
+    padding: 0.25rem;
+    margin-right: 0.5rem;
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
 
-  &:hover {
-    background-color: hsla(var(--overlay0) / 0.3);
-  }
+    &:hover {
+        background-color: hsla(var(--overlay0) / 0.3);
+    }
 
-  svg {
-    width: 16px;
-    height: 16px;
-  }
+    svg {
+        width: 16px;
+        height: 16px;
+    }
 }
 
 .app-content {
-    display: flex;
-    flex-direction: row;
-    gap: 0.5rem;
-    padding: 0.25rem;
-    flex-grow: 1;
-    height: 100%;
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  flex-grow: 1;
+  height: calc(100% - 2rem);
+  overflow: hidden;
 
     &__section {
         display: flex;
@@ -325,7 +335,7 @@ function expandChannelList() {
                     background-color: hsla(var(--accent) / 0.2);
                     border: 1px solid hsla(var(--accent) / 0.05);
                     color: hsl(var(--background));
-            }
+                }
                 p {
                     margin: 0;
                     font-weight: 500;
@@ -345,7 +355,17 @@ function expandChannelList() {
             border: 1px solid hsla(var(--subtext1) / 0.2);
             border-radius: 1rem 0.5rem 0.5rem 0.5rem;
             overflow: hidden;
-            transition: all 0.2s ease-out;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+
+            .chat__content {
+                display: flex;
+                flex-direction: column;
+                overflow-y: auto;
+                height: 100%;
+                max-height: 100%;
+            }
 
             .chat__content-header {
                 display: flex;
@@ -365,25 +385,24 @@ function expandChannelList() {
                     }
                 }
             }
-
         }
     }
 }
 
 .resize-divider {
-  position: absolute;
-  left: -2px;
-  top: 0;
-  height: 100%;
-  width: 4px;
-  border-radius: 1rem;
-  cursor: ew-resize;
-  background-color: transparent;
-  transition: background-color 0.2s;
+    position: absolute;
+    left: -2px;
+    top: 0;
+    height: 100%;
+    width: 4px;
+    border-radius: 1rem;
+    cursor: ew-resize;
+    background-color: transparent;
+    transition: background-color 0.2s;
 
-  &:hover {
-    background-color: hsla(var(--surface2) / 0.5);
-  }
+    &:hover {
+        background-color: hsla(var(--surface2) / 0.5);
+    }
 }
 
 .loading-overlay {

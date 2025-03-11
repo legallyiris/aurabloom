@@ -59,8 +59,26 @@ const router = createRouter({
       path: "/app",
       name: "app",
       component: () => import("../views/app/AppRoot.vue"),
+      children: [
+        {
+          path: "",
+          name: "app-home",
+          component: () => import("../views/app/HomeView.vue"),
+        },
+        {
+          path: "communities/:communityId",
+          name: "community",
+          component: () => import("../views/app/CommunityView.vue"),
+        },
+        {
+          path: "communities/:communityId/channels/:channelId",
+          name: "channel",
+          component: () => import("../views/app/ChannelView.vue"),
+        },
+      ],
       meta: {
         title: "app - aurabloom",
+        auth: true,
       },
     },
   ],

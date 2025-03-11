@@ -6,6 +6,7 @@ export const users = sqliteTable("users", {
   displayName: text("displayName", { length: 48 }).notNull(),
   aboutMe: text("aboutMe", { length: 500 }),
   password: text("password").notNull(),
+  avatarUrl: text("avatarUrl"),
 });
 
 export const sessions = sqliteTable("sessions", {

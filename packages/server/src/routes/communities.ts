@@ -6,6 +6,7 @@ import db, { schema } from "../db";
 import { ensureCommunityActorExists } from "../federation/utils";
 import { getBaseUrl } from "../federation/utils";
 import { authMiddleware } from "../middleware/auth";
+import { uploadObject } from "../utils/s3";
 
 const communityCreateBody = t.Object({
   name: t.String({ minLength: 3, maxLength: 100 }),
@@ -13,6 +14,16 @@ const communityCreateBody = t.Object({
   icon: t.Optional(t.String()),
   isPublic: t.Optional(t.Boolean()),
 });
+
+function formatCommunityResponse(
+  community: typeof schema.communities.$inferSelect,
+  baseUrl: string,
+) {
+  return {
+    ...community,
+    icon: community.icon ? `${baseUrl}/api/s3/${community.icon}` : null,
+  };
+}
 
 export const communitiesRoutes = new Elysia({
   prefix: "/communities",
@@ -106,7 +117,7 @@ export const communitiesRoutes = new Elysia({
   )
   .get(
     "/me",
-    async ({ user, error }) => {
+    async ({ user, error, request }) => {
       if (!user) return error(401, "unauthenticated");
 
       try {
@@ -128,7 +139,7 @@ export const communitiesRoutes = new Elysia({
         return {
           status: "success",
           data: memberships.map((m) => ({
-            ...m.community,
+            ...formatCommunityResponse(m.community, getBaseUrl(request)),
             membership: {
               joinedAt: m.joinedAt,
               displayName: m.displayName,
@@ -150,7 +161,7 @@ export const communitiesRoutes = new Elysia({
   )
   .get(
     "/:id",
-    async ({ params, user, error }) => {
+    async ({ params, user, error, request }) => {
       if (!user) return error(401, "unauthenticated");
 
       try {
@@ -200,13 +211,14 @@ export const communitiesRoutes = new Elysia({
         return {
           status: "success",
           data: {
-            ...community,
-            memberCount: memberCount || 0,
+            ...formatCommunityResponse(community, getBaseUrl(request)),
+            memberCount,
             isMember: !!userMembership,
             membership: userMembership || null,
           },
         };
       } catch (err) {
+        console.error("failed to retrieve community:", err);
         return error(500, "failed to retrieve community");
       }
     },
@@ -269,6 +281,70 @@ export const communitiesRoutes = new Elysia({
       detail: {
         summary: "join a community",
         description: "join a public community as the current user",
+      },
+    },
+  )
+  .patch(
+    "/:id/icon",
+    async ({ params, user, error, request }) => {
+      if (!user) return error(401, "unauthenticated");
+
+      try {
+        const community = db
+          .select()
+          .from(schema.communities)
+          .where(eq(schema.communities.id, params.id))
+          .get();
+
+        if (!community) return error(404, "community not found");
+        if (community.createdBy !== user.id)
+          return error(403, "only the community creator can update the icon");
+
+        const formData = await request.formData();
+        const icon = formData.get("icon");
+
+        if (!icon || !(icon instanceof File))
+          return error(400, "icon file is required");
+
+        const iconUrl = await uploadObject(icon, "community-icons");
+
+        const updated = await db
+          .update(schema.communities)
+          .set({ icon: iconUrl })
+          .where(eq(schema.communities.id, params.id))
+          .returning();
+
+        return {
+          status: "success",
+          data: {
+            ...updated[0],
+            icon: updated[0].icon
+              ? `${getBaseUrl(request)}/api/s3/${updated[0].icon}`
+              : null,
+          },
+        };
+      } catch (err) {
+        return error(500, "failed to update community icon");
+      }
+    },
+    {
+      detail: {
+        summary: "update community icon",
+        description: "update a community's icon",
+        requestBody: {
+          required: true,
+          content: {
+            "multipart/form-data": {
+              schema: {
+                type: "object",
+                properties: {
+                  icon: { type: "string", format: "binary" },
+                },
+                required: ["icon"],
+              },
+            },
+          },
+        },
       },
     },
   );

@@ -5,6 +5,7 @@ import db, { schema } from "../db";
 import { models } from "../db/models";
 import { ensureActorExists, getBaseUrl } from "../federation/utils";
 import { authMiddleware } from "../middleware/auth";
+import { uploadObject } from "../utils/s3";
 import { createSession, deleteSession } from "../utils/sessions";
 
 import routeLogger from "./_logger";
@@ -49,7 +50,6 @@ export const usersRoutes = new Elysia({
           );
         }
 
-        // also create a session
         const { sessionId } = await createSession(
           user[0].id,
           request,
@@ -217,6 +217,68 @@ export const usersRoutes = new Elysia({
       detail: {
         summary: "delete a specific session",
         description: "revoke a specific session (log out from another device)",
+      },
+    },
+  )
+  .post(
+    "/me/avatar",
+    async ({ user, error, request }) => {
+      if (!user) return error(401, "unauthenticated");
+
+      try {
+        const formData = await request.formData();
+        const avatarFile = formData.get("avatar");
+
+        if (!avatarFile || !(avatarFile instanceof File))
+          return error(400, "avatar file is required");
+        if (!avatarFile.type.startsWith("image/"))
+          return error(400, "file must be an image");
+        if (avatarFile.size > 4 * 1024 * 1024)
+          return error(400, "image must be less than 4MB");
+
+        const fileName = await uploadObject(avatarFile, "avatars");
+        await db
+          .update(schema.users)
+          .set({ avatarUrl: fileName })
+          .where(eq(schema.users.id, user.id));
+
+        await db
+          .update(schema.users)
+          .set({ avatarUrl: fileName })
+          .where(eq(schema.users.id, user.id))
+          .execute();
+
+        return {
+          status: "success",
+          data: {
+            avatar: fileName,
+          },
+        };
+      } catch (err) {
+        logger.error("failed to upload avatar:", err);
+        return error(500, "failed to upload avatar");
+      }
+    },
+    {
+      detail: {
+        summary: "upload avatar",
+        description: "upload a profile picture for the current user",
+        requestBody: {
+          required: true,
+          content: {
+            "multipart/form-data": {
+              schema: {
+                type: "object",
+                properties: {
+                  avatar: {
+                    type: "string",
+                    format: "binary",
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     },
   );

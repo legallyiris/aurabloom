@@ -6,8 +6,9 @@ import { renewSession, validateSession } from "../utils/sessions";
 const logger = new Logger("authMiddleware");
 
 export const authMiddleware = new Elysia()
-  .derive({ as: "global" }, async ({ cookie: { session } }) => {
+  .derive({ as: "global" }, async ({ cookie: { session }, request }) => {
     if (!session.value) return { user: null };
+    const baseUrl = getBaseUrl(request);
 
     const validSession = await validateSession(session.value);
     if (!validSession) return { user: null };
@@ -27,10 +28,14 @@ export const authMiddleware = new Elysia()
       );
     }
 
+    const avatarUrl = validSession.user.avatarUrl
+      ? `${baseUrl}/api/s3/${validSession.user.avatarUrl}`
+      : null;
+
     return {
       user: {
-        id: validSession.user.id,
-        username: validSession.user.username,
+        ...validSession.user,
+        avatarUrl,
       },
       sessionId: validSession.id,
     };

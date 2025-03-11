@@ -42,7 +42,11 @@ export const validateSession = async (sessionId: string) => {
   const session = await db.query.sessions.findFirst({
     where: eq(schema.sessions.id, sessionId),
     with: {
-      user: true,
+      user: {
+        columns: {
+          password: false,
+        },
+      },
     },
   });
 

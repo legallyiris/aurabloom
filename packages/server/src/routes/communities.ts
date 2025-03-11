@@ -1,9 +1,11 @@
 import { and, desc, eq } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 
+import { nanoid } from "nanoid/non-secure";
 import db, { schema } from "../db";
+import { ensureCommunityActorExists } from "../federation/utils";
+import { getBaseUrl } from "../federation/utils";
 import { authMiddleware } from "../middleware/auth";
-import { apiError } from "../utils/apiError";
 
 const communityCreateBody = t.Object({
   name: t.String({ minLength: 3, maxLength: 100 }),
@@ -19,13 +21,14 @@ export const communitiesRoutes = new Elysia({
   .use(authMiddleware)
   .post(
     "/",
-    async ({ body, user }) => {
-      if (!user) return apiError(401, "not authenticated");
+    async ({ body, user, error, request }) => {
+      if (!user) return error(401, "unauthenticated");
 
       try {
         const community = await db
           .insert(schema.communities)
           .values({
+            id: nanoid(),
             name: body.name,
             description: body.description,
             icon: body.icon,
@@ -34,9 +37,9 @@ export const communitiesRoutes = new Elysia({
           })
           .returning();
 
-        if (!community.length) {
-          return apiError(500, "failed to create community");
-        }
+        if (!community.length) return error(500, "failed to create community");
+
+        await ensureCommunityActorExists(community[0].id, getBaseUrl(request));
 
         await db.insert(schema.communityMembers).values({
           userId: user.id,
@@ -48,8 +51,9 @@ export const communitiesRoutes = new Elysia({
           status: "success",
           data: community[0],
         };
-      } catch (error) {
-        return apiError(500, "failed to create community");
+      } catch (err) {
+        console.error(err);
+        return error(500, "failed to create community");
       }
     },
     {
@@ -63,7 +67,7 @@ export const communitiesRoutes = new Elysia({
   )
   .get(
     "/",
-    async () => {
+    async ({ error }) => {
       try {
         const communities = db
           .select({
@@ -89,8 +93,8 @@ export const communitiesRoutes = new Elysia({
           status: "success",
           data: communities,
         };
-      } catch (error) {
-        return apiError(500, "failed to retrieve communities");
+      } catch (err) {
+        return error(500, "failed to retrieve communities");
       }
     },
     {
@@ -102,8 +106,8 @@ export const communitiesRoutes = new Elysia({
   )
   .get(
     "/me",
-    async ({ user }) => {
-      if (!user) return apiError(401, "not authenticated");
+    async ({ user, error }) => {
+      if (!user) return error(401, "unauthenticated");
 
       try {
         const memberships = db
@@ -132,8 +136,8 @@ export const communitiesRoutes = new Elysia({
             },
           })),
         };
-      } catch (error) {
-        return apiError(500, "failed to retrieve your communities");
+      } catch (err) {
+        return error(500, "failed to retrieve your communities");
       }
     },
     {
@@ -146,8 +150,8 @@ export const communitiesRoutes = new Elysia({
   )
   .get(
     "/:id",
-    async ({ params, user }) => {
-      if (!user) return apiError(401, "not authenticated");
+    async ({ params, user, error }) => {
+      if (!user) return error(401, "unauthenticated");
 
       try {
         const community = db
@@ -157,7 +161,7 @@ export const communitiesRoutes = new Elysia({
           .get();
 
         if (!community) {
-          return apiError(404, "community not found");
+          return error(404, "community not found");
         }
 
         if (!community.isPublic) {
@@ -173,7 +177,7 @@ export const communitiesRoutes = new Elysia({
             .get();
 
           if (!membership) {
-            return apiError(403, "you don't have access to this community");
+            return error(403, "you don't have access to this community");
           }
         }
 
@@ -202,8 +206,8 @@ export const communitiesRoutes = new Elysia({
             membership: userMembership || null,
           },
         };
-      } catch (error) {
-        return apiError(500, "failed to retrieve community");
+      } catch (err) {
+        return error(500, "failed to retrieve community");
       }
     },
     {
@@ -215,8 +219,9 @@ export const communitiesRoutes = new Elysia({
   )
   .post(
     "/:id/join",
-    async ({ params, user }) => {
-      if (!user) return apiError(401, "not authenticated");
+    async ({ params, user, error }) => {
+      if (!user) return error(401, "unauthenticated");
+
       try {
         const community = db
           .select()
@@ -224,7 +229,7 @@ export const communitiesRoutes = new Elysia({
           .where(eq(schema.communities.id, params.id))
           .get();
 
-        if (!community) return apiError(404, "community not found");
+        if (!community) return error(404, "community not found");
 
         const existingMembership = db
           .select()
@@ -238,10 +243,10 @@ export const communitiesRoutes = new Elysia({
           .get();
 
         if (existingMembership) {
-          return apiError(400, "you are already a member of this community");
+          return error(400, "you are already a member of this community");
         }
 
-        if (!community.isPublic) return apiError(404, "community not found");
+        if (!community.isPublic) return error(404, "community not found");
 
         const membership = await db
           .insert(schema.communityMembers)
@@ -256,8 +261,8 @@ export const communitiesRoutes = new Elysia({
           status: "success",
           data: membership[0],
         };
-      } catch (error) {
-        return apiError(500, "failed to join community");
+      } catch (err) {
+        return error(500, "failed to join community");
       }
     },
     {

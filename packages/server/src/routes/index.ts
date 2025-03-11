@@ -4,6 +4,7 @@ import { Elysia } from "elysia";
 import { authRoutes } from "./auth";
 import { channelsRoutes } from "./channels";
 import { communitiesRoutes } from "./communities";
+import { messagesRoutes } from "./messages";
 import { usersRoutes } from "./users";
 
 const rootTxt = fs.readFileSync("assets/root.txt", "utf8");
@@ -28,4 +29,5 @@ export const routes = new Elysia()
   .use(usersRoutes)
   .use(authRoutes)
   .use(communitiesRoutes)
+  .use(messagesRoutes)
   .use(channelsRoutes);

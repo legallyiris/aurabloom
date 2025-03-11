@@ -35,6 +35,15 @@ enum LogLevel {
   OFF = 5,
 }
 
+const methodMaps = {
+  [LogLevel.DEBUG]: console.debug,
+  [LogLevel.INFO]: console.info,
+  [LogLevel.WARN]: console.warn,
+  [LogLevel.ERROR]: console.error,
+  [LogLevel.FATAL]: console.error,
+  [LogLevel.OFF]: () => {},
+};
+
 interface LogOptions {
   timestamp?: boolean;
   colourize?: boolean;
@@ -71,18 +80,20 @@ class Logger {
       ...options,
     };
 
-    if (process.env.LOG_LEVEL) {
-      try {
-        const envLogLevel = process.env.LOG_LEVEL.toUpperCase();
-        if (envLogLevel in LogLevel) {
-          Logger.setLogLevel(LogLevel[envLogLevel as keyof typeof LogLevel]);
-        } else {
-          console.warn(
-            `Invalid LOG_LEVEL environment variable: ${process.env.LOG_LEVEL}. Using default: INFO.`,
-          );
+    if (typeof window === "undefined") {
+      if (process.env.LOG_LEVEL) {
+        try {
+          const envLogLevel = process.env.LOG_LEVEL.toUpperCase();
+          if (envLogLevel in LogLevel) {
+            Logger.setLogLevel(LogLevel[envLogLevel as keyof typeof LogLevel]);
+          } else {
+            console.warn(
+              `Invalid LOG_LEVEL environment variable: ${process.env.LOG_LEVEL}. Using default: INFO.`,
+            );
+          }
+        } catch (e) {
+          console.warn(`Error parsing LOG_LEVEL: ${e}. Using default: INFO.`);
         }
-      } catch (e) {
-        console.warn(`Error parsing LOG_LEVEL: ${e}. Using default: INFO.`);
       }
     }
   }
@@ -137,9 +148,47 @@ class Logger {
   }
 
   private log(level: LogLevel, message: string, ...args: unknown[]): void {
-    if (level >= Logger.logLevel) {
+    if (level >= Logger.logLevel && level !== LogLevel.OFF) {
+      const log = methodMaps[level];
+
+      if (typeof window !== "undefined") {
+        const levelString = LogLevel[level];
+        const scopeString =
+          this.scope.length > 0 ? `[${this.scope.join("/")}]` : "";
+
+        let levelStyle = "";
+        switch (level) {
+          case LogLevel.DEBUG:
+            levelStyle = "color: gray; font-weight: normal;";
+            break;
+          case LogLevel.INFO:
+            levelStyle = "color: green; font-weight: bold;";
+            break;
+          case LogLevel.WARN:
+            levelStyle = "color: orange; font-weight: bold;";
+            break;
+          case LogLevel.ERROR:
+            levelStyle = "color: red; font-weight: bold;";
+            break;
+          case LogLevel.FATAL:
+            levelStyle =
+              "color: white; background-color: red; font-weight: bold; padding: 2px 5px;";
+            break;
+        }
+
+        const scopeStyle = "color: magenta; font-weight: bold;";
+
+        log(
+          `%c[${levelString}]%c ${scopeString} ${message}`,
+          levelStyle,
+          scopeStyle,
+          ...args,
+        );
+        return;
+      }
+
       const formattedMessage = this.formatMessage(level, message);
-      console.log(formattedMessage, ...args);
+      log(formattedMessage, ...args);
     }
   }
 

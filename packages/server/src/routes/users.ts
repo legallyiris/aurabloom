@@ -3,18 +3,20 @@ import { Elysia } from "elysia";
 
 import db, { schema } from "../db";
 import { models } from "../db/models";
+import { ensureActorExists, getBaseUrl } from "../federation/utils";
 import { authMiddleware } from "../middleware/auth";
-import { apiError, apiUnauthenticated } from "../utils/apiError";
-import { deleteSession } from "../utils/sessions";
+import { createSession, deleteSession } from "../utils/sessions";
+
+import routeLogger from "./_logger";
+const logger = routeLogger.child("users");
 
 export const usersRoutes = new Elysia({
   prefix: "/users",
   tags: ["users"],
 })
-  .use(authMiddleware)
   .post(
     "/users",
-    async ({ body }) => {
+    async ({ body, error, cookie: { session }, request, server }) => {
       try {
         const existingUser = db
           .select()
@@ -23,7 +25,7 @@ export const usersRoutes = new Elysia({
           .get();
 
         if (existingUser) {
-          return apiError(409, "user with that username already exists");
+          return error(409, "user with that username already exists");
         }
 
         const passwordHash = await Bun.password.hash(body.password);
@@ -37,6 +39,24 @@ export const usersRoutes = new Elysia({
           })
           .returning();
 
+        try {
+          const baseUrl = getBaseUrl(request);
+          await ensureActorExists(user[0].id, baseUrl);
+        } catch (fedErr) {
+          logger.error(
+            "failed to create federation actor for new user:",
+            fedErr,
+          );
+        }
+
+        // also create a session
+        const { sessionId } = await createSession(
+          user[0].id,
+          request,
+          server?.requestIP(request) || undefined,
+        );
+        session.value = sessionId;
+
         return {
           status: "success",
           data: {
@@ -45,21 +65,22 @@ export const usersRoutes = new Elysia({
             displayName: user[0].displayName,
           },
         };
-      } catch (error) {
-        return apiError(500, "failed to create user");
+      } catch (err) {
+        logger.error("failed to create user:", err);
+        return error(500, "failed to create user");
       }
     },
     {
       body: models.user.create,
-      beforeHandle: ({ body, set }) => {
+      beforeHandle: ({ body, set, error }) => {
         if (body.username.length < 3 || body.username.length > 48) {
           set.status = 400;
-          return apiError(400, "username must be 3-48 characters");
+          return error(400, "username must be 3-48 characters");
         }
 
         if (body.password.length < 8 || body.password.length > 768) {
           set.status = 400;
-          return apiError(400, "password must be 8-768 characters");
+          return error(400, "password must be 8-768 characters");
         }
 
         if (
@@ -67,7 +88,7 @@ export const usersRoutes = new Elysia({
           (body.displayName.length < 3 || body.displayName.length > 48)
         ) {
           set.status = 400;
-          return apiError(400, "display name must be 3-48 characters");
+          return error(400, "display name must be 3-48 characters");
         }
       },
       detail: {
@@ -77,10 +98,11 @@ export const usersRoutes = new Elysia({
       },
     },
   )
+  .use(authMiddleware)
   .get(
     "/me",
-    async ({ user }) => {
-      if (!user) return apiUnauthenticated();
+    async ({ user, error }) => {
+      if (!user) return error(401, "unauthenticated");
       return {
         status: "success",
         data: user,
@@ -95,9 +117,9 @@ export const usersRoutes = new Elysia({
   )
   .get(
     "/me/sessions",
-    async ({ user, cookie: { session } }) => {
+    async ({ user, cookie: { session }, error }) => {
       try {
-        if (!user) return apiUnauthenticated();
+        if (!user) return error(401, "unauthenticated");
 
         const sessions = db
           .select({
@@ -139,8 +161,9 @@ export const usersRoutes = new Elysia({
             sessions: formattedSessions,
           },
         };
-      } catch (error) {
-        return apiError(500, "failed to retrieve sessions");
+      } catch (err) {
+        logger.error("failed to retrieve sessions:", err);
+        return error(500, "failed to retrieve sessions");
       }
     },
     {
@@ -153,9 +176,9 @@ export const usersRoutes = new Elysia({
   )
   .delete(
     "/me/sessions/:sessionId",
-    async ({ params, user, cookie: { session } }) => {
+    async ({ params, user, cookie: { session }, error }) => {
       try {
-        if (!user) return apiError(401, "not authenticated");
+        if (!user) return error(401, "not authenticated");
 
         const targetSession = db
           .select()
@@ -168,10 +191,10 @@ export const usersRoutes = new Elysia({
           )
           .get();
 
-        if (!targetSession) return apiError(404, "session not found");
+        if (!targetSession) return error(404, "session not found");
 
         if (params.sessionId === session.value) {
-          return apiError(
+          return error(
             400,
             "cannot delete current session, use /auth/logout instead",
           );
@@ -185,8 +208,9 @@ export const usersRoutes = new Elysia({
             message: "session deleted successfully",
           },
         };
-      } catch (error) {
-        return apiError(500, "failed to delete session");
+      } catch (err) {
+        logger.error("failed to delete session:", err);
+        return error(500, "failed to delete session");
       }
     },
     {

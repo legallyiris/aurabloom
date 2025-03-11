@@ -1,3 +1,9 @@
+/**
+ * @deprecated use elysias's error instead
+ * @param code
+ * @param message
+ * @returns
+ */
 export function apiError(code: number, message: string) {
   return {
     status: "error",
@@ -6,6 +12,6 @@ export function apiError(code: number, message: string) {
   };
 }
 
-export function apiUnauthenticated(details?: string) {
-  return apiError(401, "not authenticated");
+export function apiUnauthenticated() {
+  return { code: 401, message: "not authenticated" };
 }

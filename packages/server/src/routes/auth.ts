@@ -4,7 +4,6 @@ import { Elysia, t } from "elysia";
 import db, { schema } from "../db";
 import { models } from "../db/models";
 import ip from "../middleware/ip";
-import { apiError } from "../utils/apiError";
 import { createSession, deleteSession } from "../utils/sessions";
 
 const sessionCookie = t.Cookie({
@@ -18,11 +17,11 @@ export const authRoutes = new Elysia({
   .use(ip)
   .post(
     "/login",
-    async ({ body, cookie: { session }, request, ip }) => {
+    async ({ body, cookie: { session }, request, error, ip }) => {
       try {
         const failedAttempt = async () => {
           await Bun.sleep(Math.random() * 2000 + 1000);
-          return apiError(401, "invalid username or password");
+          return error(401, "invalid username or password");
         };
 
         const user = db
@@ -42,7 +41,7 @@ export const authRoutes = new Elysia({
         const { sessionId } = await createSession(user.id, request, ip);
         session.value = sessionId;
 
-        if (!sessionId) return apiError(500, "session creation failed");
+        if (!sessionId) return error(500, "session creation failed");
 
         return {
           status: "success",
@@ -52,8 +51,8 @@ export const authRoutes = new Elysia({
             displayName: user.displayName,
           },
         };
-      } catch (error) {
-        return apiError(500, "login failed");
+      } catch (err) {
+        return error(500, "login failed");
       }
     },
     {

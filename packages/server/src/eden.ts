@@ -1,5 +1,2 @@
-import { Elysia } from "elysia";
-import { routes } from "./routes";
-
-const app = new Elysia().use(routes);
+import type app from "./app";
 export type App = typeof app;

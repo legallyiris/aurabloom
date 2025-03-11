@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { hostname } from "node:os";
 import { Logger } from "common";
 import { z } from "zod";
 
@@ -34,6 +35,7 @@ const serverSchema = z.object({
   port: z.number().int().positive().min(1024).max(65535),
   basePath: z.string().default("/"),
   secure: z.boolean().default(false),
+  hostName: z.string().default(hostname()),
 });
 
 const dbSchema = z.object({

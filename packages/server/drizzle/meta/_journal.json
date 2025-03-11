@@ -8,6 +8,20 @@
       "when": 1741297812011,
       "tag": "0000_famous_makkari",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1741393375176,
+      "tag": "0001_certain_the_fury",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1741395552111,
+      "tag": "0002_chunky_tiger_shark",
+      "breakpoints": true
     }
   ]
 }

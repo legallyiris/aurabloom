@@ -1,13 +1,25 @@
+import type {
+  Channel,
+  ChannelsError,
+  Message,
+  MessagesError,
+  SendMessageError,
+} from "@/apiTypes";
 import { api } from "@/services/api";
 import { defineStore } from "pinia";
 
 export const useChannelStore = defineStore("channel", {
   state: () => ({
-    channels: [] as any[],
-    currentChannel: null as any,
-    messages: [] as any[],
+    channels: [] as Channel[],
+    currentChannel: null as Channel | null,
+    messages: [] as Message[],
     isLoading: false,
-    error: null as string | null,
+    error: null as
+      | ChannelsError
+      | MessagesError
+      | SendMessageError
+      | string
+      | null,
   }),
 
   getters: {
@@ -23,12 +35,8 @@ export const useChannelStore = defineStore("channel", {
       try {
         const { data, error } = await api.api.channels({ communityId }).get();
 
-        if (data) {
-          this.channels = data.data;
-        }
-        if (error) {
-          this.error = error.value || "failed to fetch channels";
-        }
+        if (data) this.channels = data.data;
+        if (error) this.error = error;
       } catch (err) {
         this.error = "failed to fetch channels";
         console.error(err);
@@ -42,14 +50,12 @@ export const useChannelStore = defineStore("channel", {
       this.error = null;
 
       try {
-        const { data, error } = await api.api.messages({ channelId }).get();
+        const { data, error } = await api.api
+          .messages({ channelId })
+          .get({ query: {} });
 
-        if (data) {
-          this.messages = data.data;
-        }
-        if (error) {
-          this.error = error.value || "failed to fetch messages";
-        }
+        if (data) this.messages = data.data;
+        if (error) this.error = error;
       } catch (err) {
         this.error = "failed to fetch messages";
         console.error(err);
@@ -68,11 +74,11 @@ export const useChannelStore = defineStore("channel", {
         });
 
         if (error) {
-          this.error = error.value || "failed to send message";
+          this.error = error;
           return false;
         }
 
-        if (data?.data) this.messages.push(data.data);
+        if (data?.data) this.messages.push(data.data as unknown as Message);
         return true;
       } catch (err) {
         this.error = "failed to send message";

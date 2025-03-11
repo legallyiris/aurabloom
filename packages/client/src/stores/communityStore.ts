@@ -1,14 +1,23 @@
+import type {
+  JoinCommunityError,
+  JoinedCommunitiesError,
+  JoinedCommunity,
+  PublicCommunity,
+} from "@/apiTypes";
 import { api } from "@/services/api";
-import type { App as AurabloomApp } from "@aurabloom/server";
-import { treaty } from "@elysiajs/eden";
 import { defineStore } from "pinia";
 
 export const useCommunityStore = defineStore("community", {
   state: () => ({
-    communities: [] as any[],
-    currentCommunity: null as any,
+    communities: [] as JoinedCommunity[],
+    currentCommunity: null as JoinedCommunity | null,
     isLoading: false,
-    error: null as string | null,
+    error: null as
+      | JoinedCommunitiesError
+      | PublicCommunity
+      | JoinCommunityError
+      | string
+      | null,
   }),
 
   getters: {
@@ -23,12 +32,8 @@ export const useCommunityStore = defineStore("community", {
       try {
         const { data, error } = await api.api.communities.index.get();
 
-        if (data) {
-          this.communities = data.data;
-        }
-        if (error) {
-          this.error = error.value || "failed to fetch communities";
-        }
+        if (data) return data.data;
+        if (error) this.error = error;
       } catch (err) {
         this.error = "failed to fetch communities";
         console.error(err);
@@ -43,13 +48,8 @@ export const useCommunityStore = defineStore("community", {
 
       try {
         const { data, error } = await api.api.communities.me.get();
-
-        if (data) {
-          this.communities = data.data;
-        }
-        if (error) {
-          this.error = error.value || "failed to fetch your communities";
-        }
+        if (data) this.communities = data.data;
+        if (error) this.error = error;
       } catch (err) {
         this.error = "failed to fetch your communities";
         console.error(err);
@@ -68,7 +68,7 @@ export const useCommunityStore = defineStore("community", {
           .join.post();
 
         if (error) {
-          this.error = error.value || "failed to join community";
+          this.error = error;
           return false;
         }
         return true;

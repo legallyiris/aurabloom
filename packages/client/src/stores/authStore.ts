@@ -1,9 +1,10 @@
+import type { User } from "@/apiTypes";
 import { api } from "@/services/api";
 import { defineStore } from "pinia";
 
 export const useAuthStore = defineStore("auth", {
   state: () => ({
-    user: null as { id: number; username: string } | null,
+    user: null as User | null,
     isAuthenticated: false,
     isLoading: false,
     error: null as string | null,
@@ -83,7 +84,7 @@ export const useAuthStore = defineStore("auth", {
       this.isLoading = true;
 
       try {
-        const resp = await api.api.auth.logout.post();
+        await api.api.auth.logout.post();
         this.user = null;
         this.isAuthenticated = false;
       } catch (err) {
